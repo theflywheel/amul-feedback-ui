@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "admin_nav.html" %}
+
+<section class="card">
+  <h2>Overview</h2>
+  <p class="note">Expected behavior: only <strong>submitted</strong> feedback counts as completed. Drafts remain pending.</p>
+  <div class="stats-grid">
+    <div class="stat"><strong>{{ metrics.total_questions }}</strong><span>Total Questions</span></div>
+    <div class="stat"><strong>{{ metrics.unassigned or 0 }}</strong><span>Unassigned</span></div>
+    <div class="stat"><strong>{{ metrics.partial or 0 }}</strong><span>Partially Annotated</span></div>
+    <div class="stat"><strong>{{ metrics.full or 0 }}</strong><span>Fully Annotated</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Random Assignment</h2>
+  <form method="post" class="stack">
+    <input type="hidden" name="action" value="random">
+    <label>Select users</label>
+    <div class="checkbox-grid">
+      {% for u in users %}
+      <label><input type="checkbox" name="user_ids" value="{{ u.id }}"> {{ u.email }}</label>
+      {% endfor %}
+    </div>
+    <label>Assignment mode</label>
+    <select name="assign_mode" required>
+      <option value="count">Assign fixed count per selected user</option>
+      <option value="all">Assign all unassigned questions round-robin across selected users</option>
+    </select>
+    <label>Questions per selected user</label>
+    <input type="number" min="1" name="count_per_user" value="10">
+    <button type="submit">Run Random Assignment</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Manual Assignment</h2>
+  <p class="muted small">Simple picker: search text, then choose matching question.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="action" value="manual">
+    <label>User</label>
+    <select name="user_id" required>
+      <option value="">Select...</option>
+      {% for u in users %}
+      <option value="{{ u.id }}">{{ u.email }}</option>
+      {% endfor %}
+    </select>
+    <label>Search Question</label>
+    <input type="text" id="questionSearch" placeholder="Type Gujarati/Category/ID">
+    <label>Question</label>
+    <select name="question_id" required>
+      <option value="">Select...</option>
+      {% for q in questions %}
+      <option value="{{ q.id }}">#{{ q.id }} {% if q.category %}[{{ q.category }}]{% endif %} - {{ q.q_gu[:100] }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Assign</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Question Status</h2>
+  <form method="get" class="filters-grid">
+    <div>
+      <label>Status</label>
+      <select name="status">
+        <option value="all" {% if filters.status == "all" %}selected{% endif %}>All</option>
+        <option value="unassigned" {% if filters.status == "unassigned" %}selected{% endif %}>Unassigned</option>
+        <option value="partial" {% if filters.status == "partial" %}selected{% endif %}>Partial</option>
+        <option value="full" {% if filters.status == "full" %}selected{% endif %}>Full</option>
+      </select>
+    </div>
+    <div>
+      <label>User</label>
+      <select name="user_id">
+        <option value="">All users</option>
+        {% for u in users %}
+        <option value="{{ u.id }}" {% if filters.user_id == (u.id | string) %}selected{% endif %}>{{ u.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Category</label>
+      <select name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+        <option value="{{ c.category }}" {% if filters.category == c.category %}selected{% endif %}>{{ c.category }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Search question text</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="Gujarati or English text">
+    </div>
+    <div>
+      <label>Page size</label>
+      <select name="page_size">
+        <option value="25" {% if filters.page_size == 25 %}selected{% endif %}>25</option>
+        <option value="50" {% if filters.page_size == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if filters.page_size == 100 %}selected{% endif %}>100</option>
+      </select>
+    </div>
+    <div class="filters-actions">
+      <button type="submit">Apply Filters</button>
+      <a class="button-link" href="{{ url_for('admin_assignments') }}">Reset</a>
+    </div>
+  </form>
+  <p class="muted">Showing {{ summary|length }} of {{ filters.total_items }} matching questions (page {{ filters.page }} / {{ filters.total_pages }}).</p>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Category</th><th>Question (Gu)</th><th>Assigned</th><th>Completed</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for row in summary %}
+      <tr>
+        <td>{{ row.question_id }}</td>
+        <td>{{ row.category }}</td>
+        <td>{{ row.q_gu }}</td>
+        <td>{{ row.assigned_count }}</td>
+        <td>{{ row.completed_count }}</td>
+        <td>
+          {% if row.assigned_count == 0 %}<span class="status-pill unassigned">Unassigned</span>
+          {% elif row.completed_count == 0 %}<span class="status-pill partial">Partially Annotated</span>
+          {% elif row.completed_count < row.assigned_count %}<span class="status-pill partial">Partially Annotated</span>
+          {% else %}<span class="status-pill full">Fully Annotated</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="pager">
+    {% if filters.page > 1 %}
+    <a href="{{ url_for('admin_assignments', page=filters.page-1, page_size=filters.page_size, status=filters.status, user_id=filters.user_id, category=filters.category, q=filters.q) }}">Previous</a>
+    {% endif %}
+    {% if filters.page < filters.total_pages %}
+    <a href="{{ url_for('admin_assignments', page=filters.page+1, page_size=filters.page_size, status=filters.status, user_id=filters.user_id, category=filters.category, q=filters.q) }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>User Progress</h2>
+  <table>
+    <thead><tr><th>User</th><th>Assigned</th><th>Completed</th><th>Drafts</th><th>Pending</th></tr></thead>
+    <tbody>
+      {% for row in user_progress %}
+      <tr>
+        <td>{{ row.email }}</td>
+        <td>{{ row.assigned }}</td>
+        <td>{{ row.completed }}</td>
+        <td>{{ row.drafts }}</td>
+        <td>{{ row.assigned - row.completed }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+<script>
+  (function () {
+    const input = document.getElementById("questionSearch");
+    const select = document.querySelector('select[name="question_id"]');
+    if (!input || !select) return;
+    input.addEventListener("input", function () {
+      const q = input.value.toLowerCase().trim();
+      for (const opt of select.options) {
+        if (!opt.value) continue;
+        opt.hidden = q && !opt.text.toLowerCase().includes(q);
+      }
+    });
+  })();
+</script>
+{% endblock %}

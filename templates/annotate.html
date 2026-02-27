@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <p class="muted">Signed in as <strong>{{ user.email }}</strong></p>
+  <p class="muted">Progress: {{ progress.completed }} / {{ progress.assigned }} completed ({{ progress.remaining }} remaining)</p>
+  <p class="note">Expected behavior: use <strong>Save Draft</strong> for partial work; only <strong>Submit & Next</strong> marks this question as completed.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="success">{{ notice }}</p>{% endif %}
+  <h2>Question #{{ question.id }} {% if question.category %}<span class="badge">{{ question.category }}</span>{% endif %}</h2>
+
+  <div class="content-block">
+    <h3>Q (Gu)</h3>
+    <p>{{ question.q_gu }}</p>
+  </div>
+  <div class="content-block">
+    <h3>Q (En)</h3>
+    <p>{{ question.q_en }}</p>
+  </div>
+  <div class="content-block">
+    <h3>Search Results</h3>
+    <div class="stack">
+      {% for section in search_sections %}
+      <details {% if loop.first %}open{% endif %}>
+        <summary>{{ section.title }}</summary>
+        <div class="scrollbox">{{ section.body }}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="content-block">
+    <h3>A(En)</h3>
+    <p>{{ question.a_en }}</p>
+  </div>
+  <div class="content-block">
+    <h3>A (Gu)</h3>
+    <p>{{ question.a_gu }}</p>
+  </div>
+
+  <form method="post" action="{{ url_for('annotate_save') }}" class="stack">
+    <input type="hidden" name="question_id" value="{{ question.id }}">
+
+    <fieldset>
+      <legend>Question Translation (Gu to En)</legend>
+      <p class="muted small">Rate if meaning, tone, and domain nuance are preserved.</p>
+      <label>Rating (1=Poor, 3=Usable, 5=Excellent)</label>
+      <select name="q_translation_rating">
+        <option value="">Select rating...</option>
+        <option value="1" {% if form_data.get("q_translation_rating") == "1" %}selected{% endif %}>1 - Poor</option>
+        <option value="2" {% if form_data.get("q_translation_rating") == "2" %}selected{% endif %}>2 - Weak</option>
+        <option value="3" {% if form_data.get("q_translation_rating") == "3" %}selected{% endif %}>3 - Usable</option>
+        <option value="4" {% if form_data.get("q_translation_rating") == "4" %}selected{% endif %}>4 - Good</option>
+        <option value="5" {% if form_data.get("q_translation_rating") == "5" %}selected{% endif %}>5 - Excellent</option>
+      </select>
+      <label>Comment</label>
+      <textarea name="q_translation_comment" rows="3">{{ form_data.get("q_translation_comment", "") }}</textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Search Results</legend>
+      <p class="muted small">Give open-ended feedback on retrieval quality, missing context, repetition, or query issues.</p>
+      <label>Feedback</label>
+      <textarea name="search_comment" rows="3">{{ form_data.get("search_comment", "") }}</textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Answer Translation & Accuracy</legend>
+      <p class="muted small">Assess factual correctness, relevance, and En/Gu alignment.</p>
+      <label>Accuracy Rating (1=Unsafe/Incorrect, 5=Accurate)</label>
+      <select name="answer_accuracy_rating">
+        <option value="">Select rating...</option>
+        <option value="1" {% if form_data.get("answer_accuracy_rating") == "1" %}selected{% endif %}>1 - Poor</option>
+        <option value="2" {% if form_data.get("answer_accuracy_rating") == "2" %}selected{% endif %}>2 - Weak</option>
+        <option value="3" {% if form_data.get("answer_accuracy_rating") == "3" %}selected{% endif %}>3 - Usable</option>
+        <option value="4" {% if form_data.get("answer_accuracy_rating") == "4" %}selected{% endif %}>4 - Good</option>
+        <option value="5" {% if form_data.get("answer_accuracy_rating") == "5" %}selected{% endif %}>5 - Excellent</option>
+      </select>
+      <label>Translation Rating (1=Mismatch, 5=Aligned)</label>
+      <select name="answer_translation_rating">
+        <option value="">Select rating...</option>
+        <option value="1" {% if form_data.get("answer_translation_rating") == "1" %}selected{% endif %}>1 - Poor</option>
+        <option value="2" {% if form_data.get("answer_translation_rating") == "2" %}selected{% endif %}>2 - Weak</option>
+        <option value="3" {% if form_data.get("answer_translation_rating") == "3" %}selected{% endif %}>3 - Usable</option>
+        <option value="4" {% if form_data.get("answer_translation_rating") == "4" %}selected{% endif %}>4 - Good</option>
+        <option value="5" {% if form_data.get("answer_translation_rating") == "5" %}selected{% endif %}>5 - Excellent</option>
+      </select>
+      <label>Comment</label>
+      <textarea name="answer_comment" rows="3">{{ form_data.get("answer_comment", "") }}</textarea>
+    </fieldset>
+
+    <div class="row-actions">
+      <button type="submit" name="save_action" value="draft">Save Draft</button>
+      <button type="submit" name="save_action" value="submitted">Submit & Next Question</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h2>All Assigned Questions Completed</h2>
+  <p>Thanks, {{ user.email }}. You have completed all currently assigned questions.</p>
+  <p class="note">Expected behavior: only submitted feedback counts as completed.</p>
+  <p class="muted">Progress: {{ progress.completed }} / {{ progress.assigned }}</p>
+  <a class="button-link" href="{{ url_for('all_questions') }}">View All Questions / Suggest New One</a>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h2>Admin Login</h2>
+  <p class="muted">Use configured admin email and password.</p>
+  <p class="note">Expected behavior: credentials come from <code>ADMIN_EMAIL</code> and <code>ADMIN_PASSWORD</code> env vars.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" class="stack">
+    <label>Email</label>
+    <input type="email" name="email" required>
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <button type="submit">Login</button>
+  </form>
+</section>
+{% endblock %}

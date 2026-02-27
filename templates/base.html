@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ title or "Golden Set Feedback UI" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Golden Set Feedback UI</h1>
+    <nav>
+      {% if session.get("user_id") %}
+        <a href="{{ url_for('annotate') }}">Annotate</a>
+        <a href="{{ url_for('all_questions') }}">All Questions</a>
+        <a href="{{ url_for('annotator_logout') }}">Logout</a>
+      {% endif %}
+      <a href="{{ url_for('admin_login') }}">Admin</a>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

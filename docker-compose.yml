@@ -1,0 +1,21 @@
+services:
+  feedback-ui:
+    build:
+      context: .
+    container_name: amul-feedback-ui
+    ports:
+      - "57631:5001"
+    environment:
+      - PORT=5001
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-prod}
+      - INIT_FROM_SHEETS=${INIT_FROM_SHEETS:-1}
+      - SYNC_ACTIVE=${SYNC_ACTIVE:-1}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@local}
+      - DB_PATH=/app/app.db
+      - GOLDEN_SHEET_PATH=/app/data/Sheets/500_goldenset_final_sheet.csv
+      - EVAL_SHEET_PATH=/app/data/Sheets/Amul Eval Sheet.csv
+    volumes:
+      - ./app.db:/app/app.db
+      - ./data/Sheets:/app/data/Sheets
+    restart: unless-stopped

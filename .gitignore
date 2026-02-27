@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+
+# Local runtime state
+app.db
+*.db-journal
+.env
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/

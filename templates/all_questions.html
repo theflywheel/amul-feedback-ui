@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>All Questions</h2>
+  <p class="muted">Signed in as {{ user.email }}</p>
+  <p class="note">Expected behavior: this list shows currently active questions after latest admin import/sync.</p>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Category</th><th>Q (Gu)</th></tr>
+    </thead>
+    <tbody>
+      {% for q in questions %}
+      <tr>
+        <td>{{ q.id }}</td>
+        <td>{{ q.category }}</td>
+        <td>{{ q.q_gu }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Suggest a New Question</h2>
+  <form method="post" class="stack">
+    <label>New question (Gujarati) *</label>
+    <textarea name="question_text_gu" rows="3" required></textarea>
+    <label>New question (English) (optional)</label>
+    <textarea name="question_text_en" rows="2"></textarea>
+    <button type="submit">Submit Suggestion</button>
+  </form>
+</section>
+{% endblock %}

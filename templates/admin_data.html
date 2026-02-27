@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "admin_nav.html" %}
+<section class="card">
+  <h2>Import / Export</h2>
+  <p class="note">Expected behavior: this is pipeline-friendly. Import can insert, update, or sync-active questions repeatedly.</p>
+  <p class="muted small">`sync` mode deactivates questions missing from CSV; it does not hard-delete rows.</p>
+  <p>
+    <a class="button-link" href="{{ url_for('export_questions') }}">Export Questions CSV</a>
+    <a class="button-link" href="{{ url_for('export_feedback') }}">Export Feedback CSV</a>
+  </p>
+  <form method="post" enctype="multipart/form-data" class="stack">
+    <label>Import questions CSV (same columns as source)</label>
+    <p class="muted small">
+      Optional CSV columns for pre-allocation: <code>assigned_emails</code>, <code>Assigned Emails</code>, or <code>Members</code>.
+      Multiple emails can be comma/semicolon separated.
+    </p>
+    <label>Import mode</label>
+    <select name="import_mode">
+      <option value="upsert">Upsert active questions (recommended)</option>
+      <option value="insert">Insert only (ignore existing matches)</option>
+      <option value="sync">Sync active set (deactivate questions missing from CSV)</option>
+    </select>
+    <label><input type="checkbox" name="replace_assignments"> Replace assignments from CSV assignee columns for matched rows</label>
+    <input type="file" name="questions_csv" accept=".csv">
+    <button type="submit">Import Questions</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Suggested Questions</h2>
+  <table>
+    <thead><tr><th>ID</th><th>User</th><th>Gujarati</th><th>English</th><th>Status</th><th>Created</th></tr></thead>
+    <tbody>
+      {% for s in suggestions %}
+      <tr>
+        <td>{{ s.id }}</td>
+        <td>{{ s.email }}</td>
+        <td>{{ s.question_text_gu }}</td>
+        <td>{{ s.question_text_en or "" }}</td>
+        <td>{{ s.status }}</td>
+        <td>{{ s.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
