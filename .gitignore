@@ -17,3 +17,6 @@ app.db
 .DS_Store
 .idea/
 .vscode/
+
+# Data sheets (not tracked in git)
+data/Sheets/
