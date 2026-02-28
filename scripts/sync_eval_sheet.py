@@ -3,6 +3,7 @@ import argparse
 import csv
 import re
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 
@@ -10,11 +11,15 @@ def norm_text(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "").strip())
 
 
+def norm_header(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
 def parse_sheet(sheet_path: Path):
     rows = list(csv.reader(sheet_path.open("r", encoding="utf-8-sig", newline="")))
     header_index = None
     for i, row in enumerate(rows):
-        lowered = [cell.strip().lower() for cell in row]
+        lowered = [norm_header(cell) for cell in row]
         if "members" in lowered and "q (gu)" in lowered:
             header_index = i
             break
@@ -22,11 +27,22 @@ def parse_sheet(sheet_path: Path):
         raise RuntimeError("Could not find header row containing Members and Q (Gu).")
 
     header = rows[header_index]
-    index_map = {name.strip().lower(): idx for idx, name in enumerate(header)}
+    index_map = {norm_header(name): idx for idx, name in enumerate(header)}
     members_idx = index_map["members"]
     q_gu_idx = index_map["q (gu)"]
     q_en_idx = index_map.get("q (en)")
     category_idx = index_map.get("category")
+    fb_q_idx = index_map.get("fb q -for col d")
+    fb_search_idx = index_map.get("fb search col e")
+    fb_a_idx = index_map.get("fb a col g")
+
+    # Fallback names if sheet headers are changed later.
+    if fb_q_idx is None:
+        fb_q_idx = index_map.get("feedback q")
+    if fb_search_idx is None:
+        fb_search_idx = index_map.get("feedback search")
+    if fb_a_idx is None:
+        fb_a_idx = index_map.get("feedback a")
 
     entries = []
     unique_emails = set()
@@ -39,13 +55,26 @@ def parse_sheet(sheet_path: Path):
         category = row[category_idx].strip() if category_idx is not None and category_idx < len(row) else ""
         q_en = row[q_en_idx].strip() if q_en_idx is not None and q_en_idx < len(row) else ""
         members_raw = row[members_idx].strip() if members_idx < len(row) else ""
+        fb_q = row[fb_q_idx].strip() if fb_q_idx is not None and fb_q_idx < len(row) else ""
+        fb_search = row[fb_search_idx].strip() if fb_search_idx is not None and fb_search_idx < len(row) else ""
+        fb_a = row[fb_a_idx].strip() if fb_a_idx is not None and fb_a_idx < len(row) else ""
         members = []
         for part in members_raw.replace(";", ",").split(","):
             email = part.strip().lower().lstrip("@")
             if email and "@" in email:
                 members.append(email)
                 unique_emails.add(email)
-        entries.append({"category": category, "q_gu": q_gu, "q_en": q_en, "members": members})
+        entries.append(
+            {
+                "category": category,
+                "q_gu": q_gu,
+                "q_en": q_en,
+                "members": members,
+                "feedback_q": fb_q,
+                "feedback_search": fb_search,
+                "feedback_a": fb_a,
+            }
+        )
     return entries, sorted(unique_emails)
 
 
@@ -89,7 +118,17 @@ def map_entries_to_questions(entries, by_exact, by_q_gu, by_q_gu_norm):
         if qid is None:
             unmapped_entries.append(item)
             continue
-        mapped_pairs.append((qid, item["members"]))
+        mapped_pairs.append(
+            (
+                qid,
+                item["members"],
+                {
+                    "q_translation_comment": item.get("feedback_q", ""),
+                    "search_comment": item.get("feedback_search", ""),
+                    "answer_comment": item.get("feedback_a", ""),
+                },
+            )
+        )
     return mapped_pairs, unmapped_entries, ambiguous_entries
 
 
@@ -128,7 +167,7 @@ def apply_sync(
 
         # Rebuild assignments from sheet mappings.
         conn.execute("DELETE FROM assignments")
-        for question_id, members in mapped_pairs:
+        for question_id, members, feedback in mapped_pairs:
             for email in sorted(set(members)):
                 user = conn.execute("SELECT id FROM users WHERE lower(email)=?", (email,)).fetchone()
                 if user:
@@ -136,6 +175,39 @@ def apply_sync(
                         "INSERT OR IGNORE INTO assignments (user_id, question_id) VALUES (?, ?)",
                         (user["id"], question_id),
                     )
+                    if (
+                        feedback.get("q_translation_comment")
+                        or feedback.get("search_comment")
+                        or feedback.get("answer_comment")
+                    ):
+                        now = datetime.utcnow().isoformat()
+                        conn.execute(
+                            """
+                            INSERT INTO feedback (
+                                user_id, question_id, submission_status,
+                                q_translation_rating, q_translation_comment,
+                                search_rating, search_issue_type, search_comment,
+                                answer_accuracy_rating, answer_translation_rating, answer_comment,
+                                created_at, updated_at
+                            )
+                            VALUES (?, ?, 'submitted', NULL, ?, NULL, NULL, ?, NULL, NULL, ?, ?, ?)
+                            ON CONFLICT(user_id, question_id) DO UPDATE SET
+                                submission_status='submitted',
+                                q_translation_comment=excluded.q_translation_comment,
+                                search_comment=excluded.search_comment,
+                                answer_comment=excluded.answer_comment,
+                                updated_at=excluded.updated_at
+                            """,
+                            (
+                                user["id"],
+                                question_id,
+                                feedback.get("q_translation_comment", ""),
+                                feedback.get("search_comment", ""),
+                                feedback.get("answer_comment", ""),
+                                now,
+                                now,
+                            ),
+                        )
         conn.commit()
     except Exception:
         conn.rollback()

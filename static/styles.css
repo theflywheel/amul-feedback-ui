@@ -62,6 +62,22 @@ body {
   font-size: 0.78rem;
 }
 .content-block { border-top: 1px solid #f0f2f5; padding-top: 0.5rem; margin-top: 0.5rem; }
+.markdown-content {
+  line-height: 1.45;
+}
+.markdown-content p {
+  margin: 0.45rem 0;
+}
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.45rem 0 0.45rem 1.2rem;
+}
+.markdown-content code {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 4px;
+  padding: 0.05rem 0.25rem;
+}
 .scrollbox {
   white-space: pre-wrap;
   max-height: 260px;

@@ -1,4 +1,6 @@
 import csv
+import html
+import io
 import os
 import random
 import sqlite3
@@ -6,7 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import markdown
 from flask import Flask, Response, g, redirect, render_template, request, session, url_for
+from markupsafe import Markup
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -153,6 +157,14 @@ def create_app() -> Flask:
         if not sections:
             sections.append({"title": "Search Context", "body": text})
         return sections
+
+    def render_markdown(raw_text: str) -> Markup:
+        source = html.escape(raw_text or "", quote=False)
+        rendered = markdown.markdown(
+            source,
+            extensions=["extra", "sane_lists", "nl2br"],
+        )
+        return Markup(rendered)
 
     def get_pending_question_for_user(user_id: int) -> Optional[sqlite3.Row]:
         return get_db().execute(
@@ -332,6 +344,8 @@ def create_app() -> Flask:
             question=question,
             progress=progress,
             search_sections=parse_search_sections(question["search_results"]),
+            answer_en_md=render_markdown(question["a_en"]),
+            answer_gu_md=render_markdown(question["a_gu"]),
             form_data=form_data,
             error=None,
             notice=request.args.get("notice"),
@@ -381,6 +395,8 @@ def create_app() -> Flask:
                         question=question,
                         progress=get_user_progress(user["id"]),
                         search_sections=parse_search_sections(question["search_results"]),
+                        answer_en_md=render_markdown(question["a_en"]),
+                        answer_gu_md=render_markdown(question["a_gu"]),
                         form_data=form_data,
                         error="All ratings are required and must be between 1 and 5 before submit.",
                         notice=None,
@@ -394,6 +410,8 @@ def create_app() -> Flask:
                     question=question,
                     progress=get_user_progress(user["id"]),
                     search_sections=parse_search_sections(question["search_results"]),
+                    answer_en_md=render_markdown(question["a_en"]),
+                    answer_gu_md=render_markdown(question["a_gu"]),
                     form_data=form_data,
                     error="Add a question translation comment when rating is 1 or 2.",
                     notice=None,
@@ -408,6 +426,8 @@ def create_app() -> Flask:
                     question=question,
                     progress=get_user_progress(user["id"]),
                     search_sections=parse_search_sections(question["search_results"]),
+                    answer_en_md=render_markdown(question["a_en"]),
+                    answer_gu_md=render_markdown(question["a_gu"]),
                     form_data=form_data,
                     error="Add an answer comment when answer accuracy/translation rating is 1 or 2.",
                     notice=None,
@@ -466,6 +486,8 @@ def create_app() -> Flask:
                 question=question,
                 progress=get_user_progress(user["id"]),
                 search_sections=parse_search_sections(question["search_results"]),
+                answer_en_md=render_markdown(question["a_en"]),
+                answer_gu_md=render_markdown(question["a_gu"]),
                 form_data=form_data,
                 error=None,
                 notice="Draft saved. This question remains pending until you submit.",
@@ -746,8 +768,8 @@ def create_app() -> Flask:
         if request.method == "POST":
             file = request.files.get("questions_csv")
             if file:
-                content = file.stream.read().decode("utf-8-sig").splitlines()
-                reader = csv.DictReader(content)
+                content = file.stream.read().decode("utf-8-sig")
+                reader = csv.DictReader(io.StringIO(content, newline=""))
                 import_mode = (request.form.get("import_mode") or "upsert").strip()
                 if import_mode not in {"insert", "upsert", "sync"}:
                     import_mode = "upsert"

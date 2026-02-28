@@ -29,11 +29,11 @@
   </div>
   <div class="content-block">
     <h3>A(En)</h3>
-    <p>{{ question.a_en }}</p>
+    <div class="markdown-content">{{ answer_en_md }}</div>
   </div>
   <div class="content-block">
     <h3>A (Gu)</h3>
-    <p>{{ question.a_gu }}</p>
+    <div class="markdown-content">{{ answer_gu_md }}</div>
   </div>
 
   <form method="post" action="{{ url_for('annotate_save') }}" class="stack">
